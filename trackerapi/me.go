@@ -12,6 +12,11 @@ import (
 	"github.com/ecin/clirescue/user"
 )
 
+const (
+	TOKEN_FILENAME = "user_token"
+	TOKEN_DIR = "/.clirescue/"
+)
+
 var (
 	URL          string     = "https://www.pivotaltracker.com/services/v5/me"
 	FileLocation string     = homeDir() + "/.tracker"
@@ -26,9 +31,14 @@ func Me() {
 }
 
 func makeRequest() []byte {
+
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", URL, nil)
-	req.SetBasicAuth(currentUser.Username, currentUser.Password)
+	if currentUser.APIToken != "" {
+		req.Header.Add("X-TrackerToken", currentUser.APIToken)
+	} else {
+		req.SetBasicAuth(currentUser.Username, currentUser.Password)
+	}
 	resp, err := client.Do(req)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -46,9 +56,17 @@ func parse(body []byte) {
 	}
 
 	currentUser.APIToken = meResp.APIToken
+
+	saveToken(currentUser.APIToken)
 }
 
 func setCredentials() {
+	userToken := readToken()
+	if (userToken != "") {
+		currentUser.APIToken = userToken
+		return;
+	}
+
 	fmt.Fprint(Stdout, "Username: ")
 	var username = cmdutil.ReadLine()
 	cmdutil.Silence()
@@ -75,4 +93,31 @@ type MeResponse struct {
 		Offset    string `json:"offset"`
 		OlsonName string `json:"olson_name"`
 	} `json:"time_zone"`
+}
+
+func saveToken (token string) {
+	tokenDir := os.Getenv("HOME") + TOKEN_DIR
+	os.Mkdir(tokenDir, os.ModeDir | os.ModePerm)
+	ioutil.WriteFile(tokenDir + TOKEN_FILENAME, []byte(currentUser.APIToken), os.ModePerm)
+}
+
+func readToken () string {
+	tokenPath := os.Getenv("HOME") + TOKEN_DIR + TOKEN_FILENAME
+	if (!fileExists(tokenPath)) {
+		return ""
+	}
+
+	bytes, error := ioutil.ReadFile(tokenPath)
+	if error != nil {
+		return ""
+	}
+	return string(bytes)
+
+}
+
+func fileExists(path string) bool {
+  if _, err := os.Stat(path); os.IsNotExist(err) {
+    return false
+  }
+  return true
 }
