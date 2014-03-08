@@ -3,37 +3,44 @@ package trackerapi
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
-	u "os/user"
+	"io/ioutil"
 
 	"github.com/ecin/clirescue/cmdutil"
-	"github.com/ecin/clirescue/user"
 )
 
 const (
-	TOKEN_FILENAME = "user_token"
-	TOKEN_DIR = "/.clirescue/"
+	ME_URL = "me/"
+	ME_FILENAME = "me"
 )
 
 var (
-	URL          string     = "https://www.pivotaltracker.com/services/v5/me"
-	FileLocation string     = homeDir() + "/.tracker"
-	currentUser  *user.User = user.New()
 	Stdout       *os.File   = os.Stdout
 )
+
+type MeResponse struct {
+	APIToken string `json:"api_token"`
+	Username string `json:"username"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Initials string `json:"initials"`
+	Timezone struct {
+		Kind      string `json:"kind"`
+		Offset    string `json:"offset"`
+		OlsonName string `json:"olson_name"`
+	} `json:"time_zone"`
+}
 
 func Me() {
 	setCredentials()
 	parse(makeRequest())
-	ioutil.WriteFile(FileLocation, []byte(currentUser.APIToken), 0644)
 }
 
 func makeRequest() []byte {
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", URL, nil)
+	req, err := http.NewRequest("GET", BASE_URL + ME_URL, nil)
 	if currentUser.APIToken != "" {
 		req.Header.Add("X-TrackerToken", currentUser.APIToken)
 	} else {
@@ -61,9 +68,7 @@ func parse(body []byte) {
 }
 
 func setCredentials() {
-	userToken := readToken()
-	if (userToken != "") {
-		currentUser.APIToken = userToken
+	if (currentUser.APIToken != "") {
 		return;
 	}
 
@@ -75,49 +80,4 @@ func setCredentials() {
 	var password = cmdutil.ReadLine()
 	currentUser.Login(username, password)
 	cmdutil.Unsilence()
-}
-
-func homeDir() string {
-	usr, _ := u.Current()
-	return usr.HomeDir
-}
-
-type MeResponse struct {
-	APIToken string `json:"api_token"`
-	Username string `json:"username"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Initials string `json:"initials"`
-	Timezone struct {
-		Kind      string `json:"kind"`
-		Offset    string `json:"offset"`
-		OlsonName string `json:"olson_name"`
-	} `json:"time_zone"`
-}
-
-func saveToken (token string) {
-	tokenDir := os.Getenv("HOME") + TOKEN_DIR
-	os.Mkdir(tokenDir, os.ModeDir | os.ModePerm)
-	ioutil.WriteFile(tokenDir + TOKEN_FILENAME, []byte(currentUser.APIToken), os.ModePerm)
-}
-
-func readToken () string {
-	tokenPath := os.Getenv("HOME") + TOKEN_DIR + TOKEN_FILENAME
-	if (!fileExists(tokenPath)) {
-		return ""
-	}
-
-	bytes, error := ioutil.ReadFile(tokenPath)
-	if error != nil {
-		return ""
-	}
-	return string(bytes)
-
-}
-
-func fileExists(path string) bool {
-  if _, err := os.Stat(path); os.IsNotExist(err) {
-    return false
-  }
-  return true
 }

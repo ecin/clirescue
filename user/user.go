@@ -1,7 +1,11 @@
 package user
 
-func New() *User {
-	return new(User)
+func NewUser (token string) *User {
+	user := new(User)
+	if (token != "") {
+		user.APIToken = token
+	}
+	return user
 }
 
 type User struct {
