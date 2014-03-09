@@ -2,7 +2,9 @@ package trackerapi
 
 import (
 	"os"
+	"fmt"
 	"io/ioutil"
+	"net/http"
 
 	"github.com/ecin/clirescue/cmdutil"
 	"github.com/ecin/clirescue/user"
@@ -16,6 +18,7 @@ const (
 var (
 	cache_dir = os.Getenv("HOME") + "/.clirescue/"
 	currentUser  *user.User = user.NewUser(readToken())
+	client = &http.Client{}
 )
 
 func saveToken (token string) {
@@ -34,4 +37,15 @@ func readToken () string {
 		return ""
 	}
 	return string(bytes)
+}
+
+func getResponseBody(request *http.Request) ([]byte, error) {
+	fmt.Printf("\n\nAPI request: \n%s\n", request.URL)
+	resp, err := client.Do(request)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err);
+	}
+	fmt.Printf("\n\nAPI response: \n%s\n", string(body))
+	return body, err
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"io/ioutil"
 
 	"github.com/ecin/clirescue/cmdutil"
 )
@@ -34,25 +33,27 @@ type MeResponse struct {
 
 func Me() {
 	setCredentials()
-	parse(makeRequest())
+	body, err := requestBody()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	parse(body)
 }
 
-func makeRequest() []byte {
+func requestBody() ([]byte, error) {
 
-	client := &http.Client{}
 	req, err := http.NewRequest("GET", BASE_URL + ME_URL, nil)
+	if (err != nil) {
+		return nil, err
+	}
+
 	if currentUser.APIToken != "" {
 		req.Header.Add("X-TrackerToken", currentUser.APIToken)
 	} else {
 		req.SetBasicAuth(currentUser.Username, currentUser.Password)
 	}
-	resp, err := client.Do(req)
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Print(err)
-	}
-	fmt.Printf("\n****\nAPI response: \n%s\n", string(body))
-	return body
+	return getResponseBody(req)
 }
 
 func parse(body []byte) {
