@@ -18,25 +18,10 @@ var (
 	Stdout       *os.File   = os.Stdout
 )
 
-type MeResponse struct {
-	APIToken string `json:"api_token"`
-	Username string `json:"username"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Initials string `json:"initials"`
-	Timezone struct {
-		Kind      string `json:"kind"`
-		Offset    string `json:"offset"`
-		OlsonName string `json:"olson_name"`
-	} `json:"time_zone"`
-}
-
 func Me() {
-	if (currentUser.APIToken == "") {
-		getCredentials()
-	}
-
-	body, err := requestBody()
+	
+	req, err := buildRequest()
+	body, err := getResponseBody(req)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -44,31 +29,35 @@ func Me() {
 	parse(body)
 }
 
-func requestBody() ([]byte, error) {
-
+func buildRequest() (*http.Request, error) {
 	req, err := http.NewRequest("GET", BASE_URL + ME_URL, nil)
 	if (err != nil) {
-		return nil, err
+		return req, err
 	}
 
-	if currentUser.APIToken != "" {
-		req.Header.Add("X-TrackerToken", currentUser.APIToken)
+	if user_token != "" {
+		req.Header.Add("X-TrackerToken", user_token)
 	} else {
-		req.SetBasicAuth(currentUser.Username, currentUser.Password)
+		username, password := getCredentials()
+		req.SetBasicAuth(username, password)
 	}
-	return getResponseBody(req)
+
+	return req, nil
 }
 
 func parse(body []byte) {
+	type MeResponse struct {
+		APIToken string `json:"api_token"`
+	}
+
 	var meResp = new(MeResponse)
 	err := json.Unmarshal(body, &meResp)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
 
-	currentUser.APIToken = meResp.APIToken
-
-	saveToken(currentUser.APIToken)
+	user_token = meResp.APIToken
+	saveToken()
 }
 
 func getCredentials() (string, string) {
@@ -78,6 +67,6 @@ func getCredentials() (string, string) {
 	fmt.Fprint(Stdout, "Password: ")
 
 	var password = cmdutil.ReadLine()
-	currentUser.Login(username, password)
 	cmdutil.Unsilence()
+	return username, password
 }

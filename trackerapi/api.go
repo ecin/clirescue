@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/ecin/clirescue/cmdutil"
-	"github.com/ecin/clirescue/user"
 )
 
 const (
@@ -17,13 +16,13 @@ const (
 
 var (
 	cache_dir = os.Getenv("HOME") + "/.clirescue/"
-	currentUser  *user.User = user.NewUser(readToken())
+	user_token = readToken()
 	client = &http.Client{}
 )
 
-func saveToken (token string) {
+func saveToken () {
 	os.Mkdir(cache_dir, os.ModeDir | os.ModePerm)
-	ioutil.WriteFile(cache_dir + TOKEN_FILENAME, []byte(currentUser.APIToken), os.ModePerm)
+	ioutil.WriteFile(cache_dir + TOKEN_FILENAME, []byte(user_token), os.ModePerm)
 }
 
 func readToken () string {
