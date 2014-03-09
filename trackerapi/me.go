@@ -21,12 +21,19 @@ var (
 func Me() {
 	
 	req, err := buildRequest()
+	if err != nil {
+		panic(err)
+	}
+
 	body, err := getResponseBody(req)
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
-	parse(body)
+
+	err = parseResponseBody(body)
+	if err != nil {
+		panic (err)
+	}
 }
 
 func buildRequest() (*http.Request, error) {
@@ -45,7 +52,7 @@ func buildRequest() (*http.Request, error) {
 	return req, nil
 }
 
-func parse(body []byte) {
+func parseResponseBody(body []byte) error {
 	type MeResponse struct {
 		APIToken string `json:"api_token"`
 	}
@@ -53,11 +60,12 @@ func parse(body []byte) {
 	var meResp = new(MeResponse)
 	err := json.Unmarshal(body, &meResp)
 	if err != nil {
-		fmt.Println("error:", err)
+		return err
 	}
 
 	user_token = meResp.APIToken
 	saveToken()
+	return nil
 }
 
 func getCredentials() (string, string) {
