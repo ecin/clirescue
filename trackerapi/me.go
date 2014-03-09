@@ -32,7 +32,10 @@ type MeResponse struct {
 }
 
 func Me() {
-	setCredentials()
+	if (currentUser.APIToken == "") {
+		getCredentials()
+	}
+
 	body, err := requestBody()
 	if err != nil {
 		fmt.Println(err)
@@ -68,11 +71,7 @@ func parse(body []byte) {
 	saveToken(currentUser.APIToken)
 }
 
-func setCredentials() {
-	if (currentUser.APIToken != "") {
-		return;
-	}
-
+func getCredentials() (string, string) {
 	fmt.Fprint(Stdout, "Username: ")
 	var username = cmdutil.ReadLine()
 	cmdutil.Silence()
